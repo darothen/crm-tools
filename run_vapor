@@ -1,0 +1,17 @@
+!#/bin/bash
+
+echo $1
+
+pth="/Applications/VAPOR.app/Contents/MacOS/"
+
+if [ -s $1 ] 
+then
+    echo "Processing $1..."
+
+    $pth/ncdfvdfcreate -timedims time -vars QC:QG:QR:T:QV:K $1 mydata.vdf
+    $pth/ncdf2vdf -timedims time -vars QC:QG:QR:T:QV:K $1 mydata.vdf
+
+    $pth/vaporgui $1
+else
+    echo "Could not find file $1"
+fi

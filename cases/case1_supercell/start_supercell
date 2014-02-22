@@ -1,0 +1,679 @@
+#!/bin/bash
+#
+# A shell script to modify, setup, build, and run the CRM. This script sets up
+# all the necessary header files with directives to be passed to the
+# preprocessor during model compilation.
+# 	Original author: Chien Wang (csh version; wangc@mit.edu)
+# 	New version by Daniel Rothenberg (darothen@mit.edu)
+
+# ============================================================================
+# === USER-MODIFICATION SECTION
+
+# ----------------------------------------------------------------------------
+# --- Model compilation/high-level configuration
+
+# New setup run? If so, we will re-generate gridno.F90 and the INCLUDE/*.h
+# header files. Else, use what already exists.
+export NEWSETUP=TRUE
+# Initialize new model run? If not, performs a model resume.
+export NEWRUN=TRUE
+
+# Enable debug mode?
+export DEBUG=FALSE
+# Use default real (real8) in model output fields?
+export R8=TRUE
+# Produce parallelized model exectuable (SPMD)?
+export SPMD=TRUE
+# Number of processors to use (ignored if !$SPMD)
+export NPROCS=20
+
+# ----------------------------------------------------------------------------
+# --- Model component/output settings
+
+# Use 3D initial data fields? If not, assume horizontal homegeneous
+export INIT3D=FALSE
+# Use TKE subgrid-closure?
+export TKE=TRUE
+# Use radiation calculation? 
+# 	Requires `iradx` be set in namelist
+export RADIA=FALSE
+# Use interactive chemistry? 
+# 	Requires `i_creact` be set in namelist,
+#			 chemistry tables (file_rktbl in namelist),
+#			 initial chemical profiles (file_cheminit in namelist)
+export CHEM=FALSE
+# Use modal aerosol model?
+# 	Requies CHEM to be set to TRUE
+export AEROSOL=FALSE
+# Write time-mean data fields to disk? If not, then write
+# instantaneous output
+export MEANDATA=TRUE
+# Use external forcing?
+export EXTFORCING=FALSE
+
+# ----------------------------------------------------------------------------
+# --- Model grid settings
+
+# Use 3D model? If not, defaults to 2D.
+export M3D=FALSE
+
+# Grid dimensions. Note that NY will be ignored later on unless M3D is
+# set to TRUE
+export NX=400
+export NY=1
+export NZ=50
+
+# ----------------------------------------------------------------------------
+# -- Advanced settings
+
+# Use PGI Accelerator directives?
+export PGIACC=FALSE
+
+# Location of machine file to run w/ SPMD?
+export MACHINEFILE="/home/darothen/machine.l002"
+
+# ============================================================================
+# === From this point on, the script should correctly set up the necessary
+# === headers, based on choices in the USER-MODIFICATION SECTION
+
+# ----------------------------------------------------------------------------
+# --- Model location and compiler settings
+
+# Compile the model in the present directory
+export EXEDIR=`pwd`
+echo "executive directory is $EXEDIR"
+export SRCDIR=$EXEDIR/SRC
+echo "   source directory is $SRCDIR"
+export INCDIR=$EXEDIR/INCLUDE
+echo "   include directory is $INCDIR"
+export OUTDIR=$EXEDIR/OUTPUT
+echo "   output directory is $OUTDIR"
+
+## Setup a run timestamp and use it to copy the start file
+export TIMESTAMP=`date +"%m%d%Y_%H%S"`
+
+cp ./start $OUTDIR/start.$TIMESTAMP
+
+export OSYS=`uname`
+export HOST=`hostname`
+echo "Current Operating System is $OSYS on $HOST"
+
+# Choose a compiler based on the operating system, assuming that
+#   Linux -> Portland Group
+#     Mac -> gfortran
+if [ $OSYS == 'Linux' ] ; then
+	export CMPLER=PGI
+elif [ $OSYS == 'Darwin' ] ; then
+	export CMPLER=GFORTRAN
+fi
+echo "Compiler is $CMPLER"
+
+if [ $SPMD == 'TRUE' ] ; then
+	export MAXCPU=$NPROCS
+else
+	export MAXCPU=1
+fi
+
+if [ $CMPLER != 'PGI' ] ; then
+	export PGIACC=FALSE
+fi
+
+# ----------------------------------------------------------------------------
+# --- Write the model grid definition module file
+
+if [ $NEWSETUP == 'TRUE' ] ; then
+
+cd $EXEDIR
+cat > gridno.F90 << EOF
+#include "ctrparam.h"
+
+	module gridno
+	
+! --- from GRIDNO.H:
+! ---  A header file contains parameter statements 
+! --- 		for Grid Numbers
+! ---	 cpp F90/F95 version
+
+#ifdef MODEL_3D
+
+	integer, parameter :: nx = $NX, nux =nx+1, nxi =nx-1
+	integer, parameter :: ny = $NY, nvy =ny+1, nyi =ny-1
+	integer, parameter :: nz = $NZ, nwz =nz+1, nzi =nz-1
+
+#if ( defined SPMD )
+	integer, parameter :: nx_t = $NX/$MAXCPU
+	integer, parameter :: nux_t= nx_t + 1
+	integer, parameter :: ny_t = ny
+	integer, parameter :: nvy_t= ny_t + 1
+
+	integer, parameter :: nx_p = nx_t + 4
+	integer, parameter :: nux_p= nx_p + 1
+	integer, parameter :: ny_p = ny_t
+	integer, parameter :: nvy_p= nvy_t
+#else
+	integer, parameter :: nx_t = nx
+	integer, parameter :: nux_t= nux
+	integer, parameter :: ny_t = ny
+	integer, parameter :: nvy_t= nvy
+
+	integer, parameter :: nx_p = nx_t
+	integer, parameter :: nux_p= nux_t
+	integer, parameter :: ny_p = ny_t
+	integer, parameter :: nvy_p= nvy_t
+#endif
+
+#else
+
+	integer, parameter :: nx = $NX, nux =nx+1, nxi =nx-1
+	integer, parameter :: ny = 1, nvy =   1, nyi =   1
+	integer, parameter :: nz = $NZ, nwz =nz+1, nzi =nz-1
+
+#if ( defined SPMD )
+	integer, parameter :: nx_t = $NX/$MAXCPU
+	integer, parameter :: nux_t= nx_t + 1
+	integer, parameter :: ny_t = 1
+	integer, parameter :: nvy_t= ny_t
+	
+	integer, parameter :: nx_p = nx_t + 4
+	integer, parameter :: nux_p= nx_p + 1
+	integer, parameter :: ny_p = ny_t
+	integer, parameter :: nvy_p= ny_p
+#else
+	integer, parameter :: nx_t = nx
+	integer, parameter :: nux_t= nux
+	integer, parameter :: ny_t = ny
+	integer, parameter :: nvy_t= nvy
+	
+	integer, parameter :: nx_p = nx_t
+	integer, parameter :: nux_p= nux_t
+	integer, parameter :: ny_p = ny_t
+	integer, parameter :: nvy_p= nvy_t
+#endif
+
+#endif
+	integer, parameter :: n_trop = 38
+	integer, parameter :: nlg  = nx  *ny  *nz
+	integer, parameter :: nlgx = nux *ny  *nz
+	integer, parameter :: nlgy = nx  *nvy *nz
+	integer, parameter :: nlgz = nx  *ny  *nwz
+	integer, parameter :: nxy  = nx  *ny
+
+	!real, parameter :: windmin = 1.e-12,  dp_max  = 0.018
+	real, parameter :: windmin = 1.e-30,  dp_max  = 0.018
+	real, parameter :: qc_min  = 1.e-6,  xnc_min = 1.e-3
+	real, parameter :: qr_min  = 1.e-6,  xnr_min = 1.e-3
+	real, parameter :: qi_min  = 1.e-13, xni_min = 1.e-3
+	real, parameter :: qg_min  = 1.e-10, xng_min = 1.e-3
+	real, parameter :: ccn_min = 1.e-3,  xin_min = 1.e-3
+	real, parameter :: qv_min  = 1.e-7,  wa_max  = 0.2
+	
+	end module gridno
+EOF
+
+fi # NEWSETUP
+
+# ----------------------------------------------------------------------------
+# --- Write the INCLUDE/homedir.h module file 
+
+if [ $NEWSETUP == "TRUE" ] ; then
+
+rm $INCDIR/homedir.h
+
+cat > $INCDIR/homedir.h << EOF
+! 
+! --- set home directory to locate namelist file
+!
+	homedir = '$EXEDIR'
+	incdir  = homedir(1:len_trim(homedir)) // '/INCLUDE'
+EOF
+
+fi # NEWSETUP
+
+# ----------------------------------------------------------------------------
+# --- Write ctrparam.h, header file containing preprocessing options
+#         Also, all low-level model configuration can be tweaked through
+#		  this section.
+
+if [ $NEWSETUP == 'TRUE' ] ; then
+
+rm $INCDIR/ctrparam.h
+
+if [ $SPMD == "TRUE" ] ; then
+cat > $INCDIR/ctrparam.h << EOF
+! ===
+! === choose whether spmd run and define MPI parameters
+! ===
+#define SPMD
+#define DECOMP_1D
+#define INTTYPE MPI_INTEGER
+!#define DECOMP_2D
+EOF
+else
+cat > $INCDIR/ctrparam.h << EOF
+! ===
+! === choose whether spmd run and define MPI parameters
+! ===
+#undef SPMD
+#define DECOMP_1D
+#define INTTYPE  MPI_INTEGER
+!#define DECOMP_2D
+EOF
+fi # SPMD
+
+if [ $PGIACC == 'TRUE' ] ; then
+cat >> $INCDIR/ctrparam.h << EOF
+! ===
+! === Use PGI Accelerator
+! ===
+#define ACCEL
+EOF
+fi # PGIACC
+
+if [ $R8 == 'TRUE' ] ; then
+cat >> $INCDIR/ctrparam.h << EOF
+#define REALTYPE MPI_REAL8
+EOF
+else
+cat >> $INCDIR/ctrparam.h << EOF
+#define REALTYPE MPI_REAL
+EOF
+fi # R8
+
+cat >> $INCDIR/ctrparam.h << EOF
+#define MAX_NPROC 128
+EOF
+
+if [ $M3D == "TRUE" ] ; then
+cat >> $INCDIR/ctrparam.h << EOF
+
+! ===
+! === choose either 3d or 2d 
+! ===
+#define MODEL_3D 1
+EOF
+else 
+cat >> $INCDIR/ctrparam.h << EOF
+
+! ===
+! === choose either 3d or 2d 
+! ===
+#undef MODEL_3D
+EOF
+fi # M3D
+
+# ===
+# === choose if use TKE or 1st order subgrid scale closure scheme
+# ===
+if [ $TKE == "TRUE" ] ; then
+cat >> $INCDIR/ctrparam.h << EOF
+#define TKE 1
+EOF
+else
+cat >> $INCDIR/ctrparam.h << EOF
+#undef TKE
+EOF
+fi # TKE
+
+# ===
+# === output format
+# ===
+if [ $MEANDATA == "TRUE" ] ; then
+cat >> $INCDIR/ctrparam.h << EOF
+#define MEANDATA 1
+EOF
+else
+cat >> $INCDIR/ctrparam.h << EOF
+#undef MEANDATA
+EOF
+fi # MEANDATA
+
+# ===
+# === external forcing
+# ===
+if [ $EXTFORCING == "TRUE" ] ; then
+cat >> $INCDIR/ctrparam.h << EOF
+#define EXT_FORCE 10
+EOF
+else
+cat >> $INCDIR/ctrparam.h << EOF
+#undef EXT_FORCE
+EOF
+fi # EXTFORCING
+
+
+# --- Model RESUME configuration:
+#  The following logic for newruns is defined here:
+#   - If a new run, set nresume=0 in the namelist
+#   - else, 
+#		- if continuing a run and applying an initial disturvance, nresume=1
+#		- if simply resuming a run, nresume=2
+
+if [ $NEWRUN == "TRUE" ] ; then
+cat >> $INCDIR/ctrparam.h << EOF
+
+#define NEW_RUN 1
+#define INPUT_32B 1
+EOF
+else
+cat >> $INCDIR/ctrparam.h << EOF
+
+!#define RESUME_1 1
+#define RESUME_2 1
+#undef INPUT_32B
+EOF
+fi # NEWRUN
+
+if [ $INIT3D == "TRUE" ] ; then
+cat >> $INCDIR/ctrparam.h << EOF
+
+! ===
+! === choose to use 3d initial field
+! ===	(normally undef for horozontal homogeneous initial field)
+! ===
+#define INIT_3D 1
+EOF
+else
+cat >> $INCDIR/ctrparam.h << EOF
+
+#undef INIT_3D
+EOF
+fi # INIT3D
+
+# ----------------------------------------------------------------------------
+# --- Model physics configuration
+
+cat >> $INCDIR/ctrparam.h << EOF
+
+! === choose autoconversion
+!
+!#define KESSLER 1
+#define BERRY 1
+!#define NOAUTOCV 1
+
+! ===
+! === choose to call initial thermo-perturbation
+! ===
+#define INIT_PERT 1
+!#undef INIT_PERT
+
+! ===
+! === multiple bulb? Change INCLUDE/cm*d.in: nbulb too!
+! ===
+!#define MULTIPLE_XBULB
+
+! ===
+! === include Coriolis force
+! ===
+#define CORIOLIS 1
+
+! === 
+! === if apply filter
+! ===
+!#ifndef MODEL_3D 
+#define FILTER_ENABLE 1
+!#endif
+
+! ===
+! === if use rigid-lid vbc
+! ===
+!#define RLVBC_ENABLE 1
+
+! ===
+! === if use the type 2 radiational lbc: note done yet
+! ===
+!#define RADLBC2 1
+
+! ===
+! === if use gravity-wave reflection filter 
+! ===
+#undef UGRAV
+!#define UGRAV 30.0
+
+! ===
+! === if use x-dir periodic lbc: not recommended for 3d
+! ===
+!#define XPLBC_ENABLE 1
+
+! ===
+! === if use y-dir periodic lbc: not recommended for 3d
+! ===
+#ifdef MODEL_3D 
+!#define YPLBC_ENABLE 1
+#endif
+
+! ===
+! === if use reference normal velocity in lbc calculation
+! ===
+!#define LBC_UV0 1
+
+! ===
+! === if allow multiple cells to grow lately
+! ===
+#define ASSEMBLE_ENABLE 1
+EOF
+
+if [ $RADIA == "TRUE" ] ; then
+
+cat >> $INCDIR/ctrparam.h << EOF
+
+! ===
+! === if include radaition
+! ===
+#define RAD_ENABLE 1
+! ===
+! === if use 1 min step for radiation in the first 5 hrs
+!	Note this seems useless
+! ===
+!#define RAD_1M_F5HR 1
+EOF
+else
+cat >> $INCDIR/ctrparam.h << EOF
+
+#undef RAD_ENABLE
+!#undef RAD_1M_F5HR
+EOF
+
+fi # RADIA
+
+if [ $M3D == "TRUE" ] ; then
+# = 70 - vertical grid covered by model (radiag.F90 std) + nz
+# NORMAL DEEP CONVECTION 50 LAYER
+	export NZR=$NZ+44
+# ISDAC
+#	export NZR=$NZ+67
+else
+	export NZR=$NZ+44
+#	export NZR=$NZ+67
+
+fi # M3D
+
+cat >> $INCDIR/ctrparam.h << EOF
+
+#define NVRAD $NZR
+
+EOF
+
+# ----------------------------------------------------------------------------
+# --- Model chemistry configuration
+
+if [ $CHEM == "TRUE" ] ; then
+cat >> $INCDIR/ctrparam.h << EOF
+
+! ===
+! === if include chemistry 
+! === (either transport only or transport + reaction)
+! ===
+#define CHEM_ENABLE 1
+
+! ===
+! === if include chemical reactions
+! ===
+#define CHEM_REACT 1
+!#undef CHEM_REACT
+! ===
+! === if include aqueous chemical reactions
+! ===
+#define AQCHEM_ENABLE 1
+!#undef AQCHEM_ENABLE
+! ===
+! === if include heterogeneous chemical reactions
+! ===
+#define SOLIDCHEM_ENABLE 1
+!#undef SOLIDCHEM_ENABLE
+EOF
+else
+cat >> $INCDIR/ctrparam.h << EOF
+
+#undef CHEM_ENABLE
+#undef CHEM_REACT
+#undef AQCHEM_ENABLE
+#undef SOLIDCHEM_ENABLE
+EOF
+fi # CHEM
+
+# ----------------------------------------------------------------------------
+# --- Model aerosol configuration
+
+if [ $AEROSOL == "TRUE" ] ; then
+cat >> $INCDIR/ctrparam.h << EOF
+
+! ===
+! === if calculate aerosol distribution 
+! ===
+#define AERO_ENABLE 1
+
+! ===
+! === if calculate aerosol condensation 
+! ===
+#define AERO_COND 1
+! ===
+! === if calculate aerosol coagulation 
+! ===
+#define AERO_COAG 1
+! ===
+! === if calculate aerosol nucleation 
+! ===
+#define AERO_NUC 1
+! ===
+! === if calculate aerosol scavenging 
+! ===
+#define AERO_SCAV 1
+! ===
+! === if calculate aerosol dry deposition
+! ===
+#define AERO_DDEP 1
+! ===
+! === if check aerosol size interval
+! ===
+#define AERO_CHECK 1
+! ===
+! === if check aerosol size interval gamma
+! ===
+!#define AERO_CHECK_GAMMA 1
+! ===
+! === if carbon aerosols (dont forget to set nmode to 5)
+! ===
+#define AERO_CARB 1
+! ===
+! === if ageing of pure carbon aerosols 
+! ===
+#define AERO_AGE 1
+!#undef AERO_AGE
+! ===
+! === if old nucleation scavenging scheme 
+! ===
+!#define NUCSCAV_OLD 1
+! ===
+! === if old impact scavenging scheme 
+! ===
+!#define IMPACT_OLD 1
+!
+! === if prognostic ice nuclei  
+! ===
+#define AERO_ICE 1
+!#undef AERO_ICE
+! ===
+! === if new binary nucleation   
+! ===
+#define AERO_NUCBIN 1
+! ===
+! === if new ternary nucleation   
+! ===
+!#define AERO_NUCTERN 1
+! ===
+! === if ammonia    
+! ===
+#define AMMONIA 1
+EOF
+else
+cat >> $INCDIR/ctrparam.h << EOF
+
+#undef AERO_ENABLE
+#define NUCSCAV_OLD 1
+#define IMPACT_OLD 1
+EOF
+fi # AEROSOL
+
+cat >> $INCDIR/ctrparam.h << EOF
+
+! ===
+! === if call lightning module (per minute)
+! ===
+!#define LIGHTNING 1
+!#define PROD_CG 7.0e26
+!#define PROD_IC 7.0e25
+EOF
+
+fi # NEWSETUP
+
+# ============================================================================
+# === Compile/link the model, then run it
+
+# ----------------------------------------------------------------------------
+# --- Compilation phase
+
+cd $EXEDIR
+	
+make -f ./Makefile clean
+make -f ./Makefile cleandump
+make -f ./Makefile
+
+# ----------------------------------------------------------------------------
+# --- Run phase
+
+echo -e "\n\n"
+echo "========================================================================"
+echo -e "\n\n"
+if [ $SPMD == 'TRUE' ] ; then
+	echo "Beginning multi-CPU run on $HOST"
+else
+	echo "Beginning single-processor run on $HOST"
+fi
+echo "    model log saved to ./LOG/log.$TIMESTAMP"
+echo "    output can be streamed from ./OUTPUT/cm.prt"
+
+if [ $CMPLER == 'GFORTRAN' ] ; then
+	./procm6a &> ./LOG/log.$TIMESTAMP &
+
+elif [ $CMPLER == 'PGI' ] ; then
+	if [ $SPMD == 'TRUE' ] ; then
+	        if [ $HOST == 'legion' ] ; then
+	    	        if [ $DEBUG == 'TRUE' ] ; then
+			        mpirun -machinefile $MACHINEFILE -np $MAXCPU -dbg=pgdbg ./procm6a &> ./LOG/log.$TIMESTAMP &
+			else
+			        mpirun -machinefile $MACHINEFILE -np $MAXCPU ./procm6a &> ./LOG/log.$TIMESTAMP &
+			fi
+		else
+			/local/mpich/bin/mpirun -np $MAXCPU ./procm6a &> ./LOG/log.$TIMESTAMP &
+		fi
+	else # Single-processor
+		if [ $DEBUG == 'TRUE' ] ; then
+			pgdbg ./procm6a &> ./LOG/log.$TIMESTAMP &
+		else
+			./procm6a &> ./LOG/log.$TIMESTAMP &
+		fi
+	fi
+elif [ $CMPLER == 'INTEL'] ; then
+	echo "No instructions yet on how to run INTEL compilation."
+fi
+
