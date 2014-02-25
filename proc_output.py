@@ -21,13 +21,13 @@ data_src = "/Volumes/legion_home/models/crm71/OUTPUT/"
 
 model_initial_time = "2000-06-20 20:22:00"
 
-nx, ny, nz = 160, 100, 76
+nx, ny, nz = 200, 120, 76
 dx, dy, dz = 1000., 1000., 250.
 dt         = 2.0
 iax        = -2
 
-t_end = 3.*(60*60) \
-      + 0.*(60)   \
+t_end = 0.*(60*60) \
+      + 8.*(60)   \
       + 0.
 
 if iax < 0:
@@ -39,41 +39,41 @@ nt = int(t_end/dt_out)
 all_vars = { 
     # "dummy" : {"long": "dummy", "units": "null", "3D": True},
 
-     "U": {"long": "x-velocity", "units": "m/s", "3D": True},
-     "V": {"long": "y-velocity", "units": "m/s", "3D": True},
-     "W": {"long": "updraft velocity", "units": "m/s", "3D": True},
+     #"U": {"long": "x-velocity", "units": "m/s", "3D": True},
+     #"V": {"long": "y-velocity", "units": "m/s", "3D": True},
+     #"W": {"long": "updraft velocity", "units": "m/s", "3D": True},
 
      #"T": {"long": "temperature", "units": "K", "3D": True},
      #"PT": {"long": "potential temperature", "units": "K", "3D": True},
-     #"P": {"long": "pressure", "units": "??", "3D": True},
-     #"K": {"long": "TKE", "units": "", "3D": True},     
+     #"P": {"long": "exner function deviation", "units": "unitless", "3D": True},
+     #"K": {"long": "TKE", "units": "m^2/s^2", "3D": True},     
      #"QV": {"long": "water vapor mix rat", "units": "kg/kg", "3D": True},
 
      #"CCN": {"long": "cloud condensation nuclei", "units": "1/cc", "3D": True},
      #"IN": {"long": "ice nuclei", "units": "1/L", "3D": True},
 
-     "QC": {"long": "cloud drop mixing ratio", "units": "kg/kg", "3D": True},
+     #"QC": {"long": "cloud drop mixing ratio", "units": "g/kg", "3D": True},
      #"NC": {"long": "cloud drop number", "units": "1/cm^3", "3D": True},
      
-     "QR": {"long": "rain mixing ratio", "units": "kg/kg", "3D": True},
-     #"NR": {"long": "rain number", "units": "1/kg", "3D": True},
+     "QR": {"long": "rain mixing ratio", "units": "g/kg", "3D": True},
+     #"NR": {"long": "rain number", "units": "1/L", "3D": True},
      
-     #"QS": {"long": "snow mixing ratio", "units": "kg/kg", "3D": True},
-     #"NS": {"long": "snow number", "units": "1/kg", "3D": True},
+     #"QS": {"long": "snow mixing ratio", "units": "g/kg", "3D": True},
+     #"NS": {"long": "snow number", "units": "1/L", "3D": True},
      
-     "QG": {"long": "graupel mixing ratio", "units": "kg/kg", "3D": True},
-     #"NG": {"long": "graupel number", "units": "1/kg", "3D": True},
+     #"QG": {"long": "graupel mixing ratio", "units": "g/kg", "3D": True},
+     #"NG": {"long": "graupel number", "units": "1/L", "3D": True},
      
-     #"QI": {"long": "crystal mixing ratio", "units": "kg/kg", "3D": True},
-     #"NI": {"long": "crystal number", "units": "1/kg", "3D": True},
+     #"QI": {"long": "crystal mixing ratio", "units": "g/kg", "3D": True},
+     #"NI": {"long": "crystal number", "units": "1/L", "3D": True},
      
-     #QB": {"long": "bullet mixing ratio", "units": "kg/kg", "3D": True},
-     #"NB": {"long": "bullet number", "units": "1/kg", "3D": True},
+     #"QB": {"long": "bullet mixing ratio", "units": "g/kg", "3D": True},
+     #"NB": {"long": "bullet number", "units": "1/L", "3D": True},
      
-     #"QP": {"long": "plate mixing ratio", "units": "kg/kg", "3D": True},
-     #"NP": {"long": "plate number", "units": "1/kg", "3D": True},
+     #"QP": {"long": "plate mixing ratio", "units": "g/kg", "3D": True},
+     #"NP": {"long": "plate number", "units": "1/L", "3D": True},
 
-     #"QTT": {"long": "total vapor mix rat", "units": "kg/kg", "3D": True},
+     #"QTT": {"long": "total vapor mix rat", "units": "g/kg", "3D": True},
      #"PRECIP": {"long": "surface precipitation", "units": "mm", "3D": False,
      #           "valid_range": [0., 0.01]},
 }

@@ -428,13 +428,17 @@ def plot_skewt(sounding, ax=None, figsize=(8,8),
                         color="green", fontsize=8, ha="center", va="bottom")
 
     def _temperature(temperature, pressure):
+        linestyle = _choose_kwargs("T_style", "-")
         color = _choose_kwargs("T_color", "black")
-        ax.semilogy(temperature + _skewnessTerm(pressure), pressure, basey=math.e, color=color, \
+        s = linestyle+"k" # note that color will always be overridden
+        ax.semilogy(temperature + _skewnessTerm(pressure), pressure, s, basey=math.e, color=color, \
                      linestyle='solid', linewidth = 2.)
 
     def _dewpoint(dewpoints, pressure):
+        linestyle = _choose_kwargs("Td_style", "-")
         color = _choose_kwargs("Td_color", "blue")
-        ax.semilogy(dewpoints + _skewnessTerm(pressure), pressure, basey=math.e, color=color, \
+        s = linestyle+"k" # note that color will always be overridden
+        ax.semilogy(dewpoints + _skewnessTerm(pressure), pressure, s, basey=math.e, color=color, \
                      linestyle='solid', linewidth = 2.)
 
     _isotherms()
@@ -452,7 +456,7 @@ def plot_skewt(sounding, ax=None, figsize=(8,8),
     _dewpoint(dewpoint, pressure)
 
     if plot_winds:
-        T_location = 45.
+        T_location = _choose_kwargs("barb_loc", 45.)
 
         if (("us" in sounding) and ("vs" in sounding)):
             us, vs = sounding['us'].values, sounding['vs'].values
@@ -482,7 +486,8 @@ def plot_skewt(sounding, ax=None, figsize=(8,8),
         wind_ax.semilogy()
 
     if lift_parcel:
-        parcel_sounding = compute_lifted_parcel(sounding)
+        first_index = _choose_kwargs("first_index", 1)
+        parcel_sounding = compute_lifted_parcel(sounding, first_index)
         misc = parcel_sounding.misc
         color = _choose_kwargs("parcel_color", "red")
 
@@ -543,7 +548,7 @@ def plot_skewt(sounding, ax=None, figsize=(8,8),
 
     return ax, parcel_sounding
 
-def compute_lifted_parcel(sounding, height_cutoff=10000.0):
+def compute_lifted_parcel(sounding, height_cutoff=10000.0, first_index=1):
     """ Lift a parcel from a surface with respect to a given sounding
 
     Parameters
@@ -552,6 +557,8 @@ def compute_lifted_parcel(sounding, height_cutoff=10000.0):
         The environmmental profile, conforming to the requirements in ``plot_skewt``
     height_cutoff : float
         Altitude at which to stop lifting the parcel
+    first_index : int
+        Index of the level from which valid data begins; the user might need to specify this
 
     Returns
     -------
@@ -564,12 +571,13 @@ def compute_lifted_parcel(sounding, height_cutoff=10000.0):
 
     trunc_sounding = sounding[sounding['height'] < height_cutoff].dropna()
     p_interp = interp1d(trunc_sounding.height, trunc_sounding.pressure, 'slinear')
-    first = trunc_sounding.index[1]
+    first = trunc_sounding.index[first_index]
 
     ## 1) Compute the surface dry adiabat and lift it all the way to the
     ##    top of the sounding. We'll use it to find the LCL and then replace
     ##    everything above it with the appropriate moist adiabat. 
     t0, p0, r0 = trunc_sounding[["temperature", "pressure", "mixing_ratio"]].ix[first]
+    print "Lifting parcel from T=%3.1f C, P=%4d hPa, Qv=%2.1f g/kg" % (t0, p0, r0)
     p_all = trunc_sounding.pressure.values
     p_dry = np.arange(p_all[0], p_all[-1], -dp)
 
