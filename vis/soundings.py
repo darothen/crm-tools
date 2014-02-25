@@ -456,6 +456,7 @@ def plot_skewt(sounding, ax=None, figsize=(8,8),
     _dewpoint(dewpoint, pressure)
 
     if plot_winds:
+        barb_color = _choose_kwargs("barb_color", 'k')
         T_location = _choose_kwargs("barb_loc", 45.)
 
         if (("us" in sounding) and ("vs" in sounding)):
@@ -480,7 +481,7 @@ def plot_skewt(sounding, ax=None, figsize=(8,8),
         wind_ax.yaxis.set_visible(False)
 
         wind_ax.barbs(np.ones_like(us)[::2]*T_location, pressure[::2], us[::2], vs[::2],
-                      length=6)
+                      length=6, barbcolor=barb_color)
 
         wind_ax.get_shared_y_axes().join(ax, wind_ax)
         wind_ax.semilogy()
@@ -546,7 +547,10 @@ def plot_skewt(sounding, ax=None, figsize=(8,8),
     if title:
         plt.title(title, loc="left", fontsize=12)
 
-    return ax, parcel_sounding
+    if lift_parcel:
+        return ax, parcel_sounding
+    else:
+        return ax
 
 def compute_lifted_parcel(sounding, height_cutoff=10000.0, first_index=1):
     """ Lift a parcel from a surface with respect to a given sounding
