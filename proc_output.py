@@ -17,17 +17,19 @@ VAR_FILE = False
 
 #data_src = sys.argv[1]
 #data_src = "../../crm71_dev/OUTPUT/"
-data_src = "/Volumes/legion_home/models/crm71_2d/OUTPUT/"
-#data_src = "/Volumes/legion_storage02/crm_testing/kshv_500ccn_100in/"
+#data_src = "/Volumes/legion_home/models/crm71_2d/OUTPUT/"
+data_src = "/Volumes/legion_storage02/crm_testing/kshv_2d_largedomain/kshv_500ccn_200in/"
+
+output_dir = "../"
 
 model_initial_time = "2011-04-25 18:00:00"
 
-nx, ny, nz = 400, 1, 50
+nx, ny, nz = 1000, 1, 65
 dx, dy, dz = 1000., 1000., 250.
 dt         = 2.0
 iax        = -2
 
-t_end = 6.*(60*60) \
+t_end = 4.*(60*60) \
       + 0.*(60)   \
       + 0.
 
@@ -41,40 +43,40 @@ all_vars = {
     # "dummy" : {"long": "dummy", "units": "null", "3D": True},
 
      "U": {"long": "x-velocity", "units": "m/s", "3D": True},
-     #"V": {"long": "y-velocity", "units": "m/s", "3D": True},
+     "V": {"long": "y-velocity", "units": "m/s", "3D": True},
      "W": {"long": "updraft velocity", "units": "m/s", "3D": True},
 
      "T": {"long": "temperature", "units": "K", "3D": True},
      "PT": {"long": "potential temperature", "units": "K", "3D": True},
-     #"P": {"long": "exner function deviation", "units": "unitless", "3D": True},
-     #"K": {"long": "TKE", "units": "m^2/s^2", "3D": True},     
+     "P": {"long": "exner function deviation", "units": "unitless", "3D": True},
+     "K": {"long": "TKE", "units": "m^2/s^2", "3D": True},     
      "QV": {"long": "water vapor mix rat", "units": "kg/kg", "3D": True},
 
-     #"CCN": {"long": "cloud condensation nuclei", "units": "1/cc", "3D": True},
-     #"IN": {"long": "ice nuclei", "units": "1/L", "3D": True},
+     "CCN": {"long": "cloud condensation nuclei", "units": "1/cc", "3D": True},
+     "IN": {"long": "ice nuclei", "units": "1/L", "3D": True},
 
      "QC": {"long": "cloud drop mixing ratio", "units": "g/kg", "3D": True},
-     #"NC": {"long": "cloud drop number", "units": "1/cm^3", "3D": True},
+     "NC": {"long": "cloud drop number", "units": "1/cm^3", "3D": True},
      
      "QR": {"long": "rain mixing ratio", "units": "g/kg", "3D": True},
-     #"NR": {"long": "rain number", "units": "1/L", "3D": True},
+     "NR": {"long": "rain number", "units": "1/L", "3D": True},
      
      "QS": {"long": "snow mixing ratio", "units": "g/kg", "3D": True},
-     #"NS": {"long": "snow number", "units": "1/L", "3D": True},
+     "NS": {"long": "snow number", "units": "1/L", "3D": True},
      
      "QG": {"long": "graupel mixing ratio", "units": "g/kg", "3D": True},
-     #"NG": {"long": "graupel number", "units": "1/L", "3D": True},
+     "NG": {"long": "graupel number", "units": "1/L", "3D": True},
      
      "QI": {"long": "crystal mixing ratio", "units": "g/kg", "3D": True},
-     #"NI": {"long": "crystal number", "units": "1/L", "3D": True},
+     "NI": {"long": "crystal number", "units": "1/L", "3D": True},
      
      "QB": {"long": "bullet mixing ratio", "units": "g/kg", "3D": True},
-     #"NB": {"long": "bullet number", "units": "1/L", "3D": True},
+     "NB": {"long": "bullet number", "units": "1/L", "3D": True},
      
      "QP": {"long": "plate mixing ratio", "units": "g/kg", "3D": True},
-     #"NP": {"long": "plate number", "units": "1/L", "3D": True},
+     "NP": {"long": "plate number", "units": "1/L", "3D": True},
 
-     #"QTT": {"long": "total vapor mix rat", "units": "g/kg", "3D": True},
+     "QTT": {"long": "total vapor mix rat", "units": "g/kg", "3D": True},
      "PRECIP": {"long": "surface precipitation", "units": "kg/m^2", "3D": False,
                 "valid_range": [0., 0.01]},
 }
@@ -174,6 +176,7 @@ if __name__ == "__main__":
         
         temperature = initial["T0(K)"] - 273.15 # C
         pressure = initial["P(mb)"]             # mb
+        exner = initial["PAI0"]                 # unitless
         wv = initial["QV0(G/KG)"]/1000.         # to g/g
         heights = initial["Z(M)"].values[::-1]
         
@@ -191,14 +194,29 @@ if __name__ == "__main__":
     gamma = lambda T, RH: np.log(RH/100.) + b*T/(c+T)
     dewpoint = c*gamma(temperature, RH)/(b-gamma(temperature, RH))
 
-    sounding = pd.DataFrame({"temperature": temperature, "dewpoint": dewpoint,
-                             "pressure": pressure, "wv": wv, "RH": RH})
+    sounding_data = { 
+        "T0": {'data': temperature, 'long': "basic state tempeature", 'units': "K"},
+        "P0": {'data': pressure, 'long': "basic state pressure", 'units': "hPa"},
+        "QV0": {'data': wv, 'long': "basic state water vapor mixing ratio", 'units': "kg/kg"}, 
+        "PI0": {'data': exner, 'long': "basic state exner function", 'units': "unitless"},
+    }
 
     #######################################################
     
     if MASTER_FILE:
         master_output = make_file(case+"_master.nc", heights)
         print "WRITING MASTER OUTPUT"
+
+        ## Add the reference profiles/data to the master data
+        for var, d in sounding_data.iteritems():
+            dtw = master_output.createVariable(var, "f4", ("zc",))
+            dtw.units = d['units']
+            dtw.long_name = d['long']
+            dtw[:] = d['data'].values[::-1]
+        ps = master_output.createVariable("PS", "f4", ())
+        ps.units = "Pa"
+        ps.long_name = "reference ps in exner function"
+        ps[:] = 1e5
 
     for var, d in all_vars.iteritems():
         print var, d['long']        
