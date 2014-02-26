@@ -18,6 +18,7 @@ VAR_FILE = False
 #data_src = sys.argv[1]
 #data_src = "../../crm71_dev/OUTPUT/"
 data_src = "/Volumes/legion_home/models/crm71_2d/OUTPUT/"
+#data_src = "/Volumes/legion_storage02/crm_testing/kshv_500ccn_100in/"
 
 model_initial_time = "2011-04-25 18:00:00"
 
@@ -26,8 +27,8 @@ dx, dy, dz = 1000., 1000., 250.
 dt         = 2.0
 iax        = -2
 
-t_end = 4.*(60*60) \
-      + 40.*(60)   \
+t_end = 6.*(60*60) \
+      + 0.*(60)   \
       + 0.
 
 if iax < 0:
@@ -74,7 +75,7 @@ all_vars = {
      #"NP": {"long": "plate number", "units": "1/L", "3D": True},
 
      #"QTT": {"long": "total vapor mix rat", "units": "g/kg", "3D": True},
-     "PRECIP": {"long": "surface precipitation", "units": "mm", "3D": False,
+     "PRECIP": {"long": "surface precipitation", "units": "kg/m^2", "3D": False,
                 "valid_range": [0., 0.01]},
 }
 
