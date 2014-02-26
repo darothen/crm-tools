@@ -25,7 +25,7 @@ export R8=TRUE
 # Produce parallelized model exectuable (SPMD)?
 export SPMD=TRUE
 # Number of processors to use (ignored if !$SPMD)
-export NPROCS=40
+export NPROCS=40NZ
 
 # ----------------------------------------------------------------------------
 # --- Model component/output settings
@@ -36,7 +36,7 @@ export INIT3D=FALSE
 export TKE=TRUE
 # Use radiation calculation? 
 # 	Requires `iradx` be set in namelist
-export RADIA=FALSE
+export RADIA=TRUE
 # Use interactive chemistry? 
 # 	Requires `i_creact` be set in namelist,
 #			 chemistry tables (file_rktbl in namelist),
@@ -47,7 +47,7 @@ export CHEM=FALSE
 export AEROSOL=FALSE
 # Write time-mean data fields to disk? If not, then write
 # instantaneous output
-export MEANDATA=FALSE
+export MEANDATA=TRUE
 # Use external forcing?
 export EXTFORCING=FALSE
 
@@ -61,7 +61,7 @@ export M3D=FALSE
 # set to TRUE
 export NX=400
 export NY=1
-export NZ=50
+export NZ=65
 
 # ----------------------------------------------------------------------------
 # -- Advanced settings
