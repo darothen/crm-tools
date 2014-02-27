@@ -32,7 +32,7 @@ subroutine read_2aq(filename, nt, nx, ny, nz, aq_c, aq_r)
 
 end subroutine
 
-subroutine read_diag(filename, nz, spmd)
+subroutine read_diag(filename, nz, spmd, counter)
 
     implicit none
 
@@ -42,7 +42,7 @@ subroutine read_diag(filename, nz, spmd)
     logical, intent(in) :: spmd
 
 !-- Output Variables
-    ! none
+    integer, intent(out) :: counter
 
 !-- Local Variables
     integer :: status, nn, ntime, nhour, nmin, nsec
@@ -50,11 +50,13 @@ subroutine read_diag(filename, nz, spmd)
 
 !-- F2PY VARIABLE BINDINGS
     ! f2py intent(in) :: filename, nz, spmd
+    ! f2py intent(out) :: counter
 
 !-- Main routine
     open (unit=90, file=filename, form="unformatted", access="sequential")
 101 format (2x,i2,":",i0.2,":",i0.2,"     |     (",i0.8," seconds)")
 
+    counter = 0
     if (spmd) then
         read_file : do 
             read (90,iostat=status) ntime, nhour, nmin, nsec, (tdiag(:,nn), nn=1,46)
@@ -66,6 +68,58 @@ subroutine read_diag(filename, nz, spmd)
                 exit
             else ! successfully read from file
                 write (*,101) nhour, nmin, nsec, ntime
+                counter = counter + 1
+                write (*,*) counter, tdiag(16,1)
+            end if
+        end do read_file
+    else
+        print *, "Not implemented yet"
+    endif
+
+    rewind (90)
+    print *, "End of reading program"
+    close (90)
+
+end subroutine read_diag
+
+subroutine save_diag(filename, nz, nt, spmd, all_time, all_tdiag)
+
+    implicit none
+
+!-- Input Variables
+    character(*), intent(in) :: filename
+    integer, intent(in) :: nz
+    integer, intent(in) :: nt
+    logical, intent(in) :: spmd
+
+!-- Output Variables
+    integer, dimension(nt), intent(out) :: all_time
+    real, dimension(nt,nz,46), intent(out) :: all_tdiag
+
+!-- Local Variables
+    integer :: status, nn, ntime, nhour, nmin, nsec, t
+    real, dimension(nz, 46) :: tdiag
+
+!-- F2PY VARIABLE BINDINGS
+    ! f2py intent(in) :: filename, nz, nt, spmd
+    ! f2py intent(out) :: all_tdiag, all_time
+
+!-- Main routine
+    open (unit=90, file=filename, form="unformatted", access="sequential")
+
+    if (spmd) then
+        read_file : do t = 1, nt
+            read (90,iostat=status) ntime, nhour, nmin, nsec, (tdiag(:,nn), nn=1,46)
+            if (status > 0) then
+                print *, "Error reading " // filename 
+                exit
+            else if (status < 0) then
+                print *, "Finished reading " // filename
+                exit
+            else ! successfully read from file
+                print *, t, ntime, tdiag(16,1)
+                all_time(t) = ntime
+                all_tdiag(t,:,:) = tdiag(:,:)
             end if
         end do read_file
     else
@@ -74,7 +128,7 @@ subroutine read_diag(filename, nz, spmd)
 
     close (90)
 
-end subroutine read_diag
+end subroutine save_diag
 
 
 subroutine read(filename, nt, nx, ny, nz, data)
