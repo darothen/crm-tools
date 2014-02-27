@@ -1,4 +1,4 @@
-! File: T_read.F90
+! File: crm_io.F90
 ! bash$ f2py -c -m crm_io crm_io.F90
 subroutine read_2aq(filename, nt, nx, ny, nz, aq_c, aq_r)
 
@@ -146,7 +146,7 @@ subroutine read(filename, nt, nx, ny, nz, data)
 !-- Local Variables
     real(4), dimension(nx*ny*nz) :: data_record
     integer, dimension(3) :: shape
-    integer :: t
+    integer :: t, status
     
 !-- F2PY VARIABLE BINDINGS
     !  f2py intent(in) :: filename, nt, nx, ny, nz
@@ -156,11 +156,19 @@ subroutine read(filename, nt, nx, ny, nz, data)
     shape = (/ nx, ny, nz /)
     open (unit=1, file=filename, form="unformatted", access="sequential")
     
-    do t = 1, nt
+    read_loop : do t = 1, nt
         print *, t
-        read (1) data_record
-        data(t,:,:,:) = reshape(data_record, shape)
-    end do
+        read (1,iostat=status) data_record
+        if (status > 0) then
+            print *, "Error reading " // filename
+            exit
+        else if (status < 0) then
+            print *, "Finished reading " // filename
+            exit
+        else ! the read was successful, so do some work
+            data(t,:,:,:) = reshape(data_record, shape)
+        end if
+    end do read_loop
     print *, "closing"
     close (unit=1)
     print *, "done"
