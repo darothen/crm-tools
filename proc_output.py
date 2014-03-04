@@ -18,10 +18,9 @@ DIAG_FILE = True
 
 #data_src = sys.argv[1]
 #data_src = "../../crm71_dev/OUTPUT/"
-data_src = "/Volumes/legion_home/models/crm71_2d/OUTPUT/"
-#data_src = "/Volumes/legion_storage02/crm_testing/kshv_2d_largedomain/kshv_500ccn_200in/"
-
-output_dir = "../"
+#data_src = "/Volumes/legion_home/models/crm71_2d/OUTPUT/"
+suffix = "750ccn_100in"
+data_src = "/Volumes/legion_storage02/crm_testing/kshv_2d_largedomain/kshv_%s/" % suffix
 
 model_initial_time = "2011-04-25 18:00:00"
 
@@ -30,8 +29,8 @@ dx, dy, dz = 1000., 1000., 500.
 dt         = 2.0
 iax        = -2
 
-t_end = 1.*(60*60) \
-      + 54.*(60)   \
+t_end = 6.*(60*60) \
+      + 0.*(60)   \
       + 0.
 
 if iax < 0:
@@ -42,42 +41,43 @@ nt = int(t_end/dt_out)
 
 all_vars = { 
     # "dummy" : {"long": "dummy", "units": "null", "3D": True},
-
-     #"U": {"long": "x-velocity", "units": "m/s", "3D": True},
+    
+     "U": {"long": "x-velocity", "units": "m/s", "3D": True},
      #"V": {"long": "y-velocity", "units": "m/s", "3D": True},
-     #"W": {"long": "updraft velocity", "units": "m/s", "3D": True},
+     "W": {"long": "updraft velocity", "units": "m/s", "3D": True},
 
-     #"T": {"long": "temperature", "units": "K", "3D": True},
-     #"PT": {"long": "potential temperature", "units": "K", "3D": True},
-     #"P": {"long": "exner function deviation", "units": "unitless", "3D": True},
-     #"K": {"long": "TKE", "units": "m^2/s^2", "3D": True},     
-     #"QV": {"long": "water vapor mix rat", "units": "kg/kg", "3D": True},
+     "T": {"long": "temperature", "units": "K", "3D": True},
+     "PT": {"long": "potential temperature", "units": "K", "3D": True},
+     "P": {"long": "exner function deviation", "units": "unitless", "3D": True},
+     "K": {"long": "TKE", "units": "m^2/s^2", "3D": True},     
+     "QV": {"long": "water vapor mix rat", "units": "kg/kg", "3D": True},
 
-     #"CCN": {"long": "cloud condensation nuclei", "units": "1/cc", "3D": True},
-     #"IN": {"long": "ice nuclei", "units": "1/L", "3D": True},
+     "CCN": {"long": "cloud condensation nuclei", "units": "1/cc", "3D": True},
+     "IN": {"long": "ice nuclei", "units": "1/L", "3D": True},
 
-     #"QC": {"long": "cloud drop mixing ratio", "units": "g/kg", "3D": True},
-     #"NC": {"long": "cloud drop number", "units": "1/cm^3", "3D": True},
+     "QC": {"long": "cloud drop mixing ratio", "units": "g/kg", "3D": True},
+     "NC": {"long": "cloud drop number", "units": "1/cm^3", "3D": True},
      
-     #"QR": {"long": "rain mixing ratio", "units": "g/kg", "3D": True},
-     #"NR": {"long": "rain number", "units": "1/L", "3D": True},
+     "QR": {"long": "rain mixing ratio", "units": "g/kg", "3D": True},
+     "NR": {"long": "rain number", "units": "1/L", "3D": True},
      
-     #"QS": {"long": "snow mixing ratio", "units": "g/kg", "3D": True},
-     #"NS": {"long": "snow number", "units": "1/L", "3D": True},
+     "QS": {"long": "snow mixing ratio", "units": "g/kg", "3D": True},
+     "NS": {"long": "snow number", "units": "1/L", "3D": True},
      
-     #"QG": {"long": "graupel mixing ratio", "units": "g/kg", "3D": True},
-     #"NG": {"long": "graupel number", "units": "1/L", "3D": True},
+     "QG": {"long": "graupel mixing ratio", "units": "g/kg", "3D": True},
+     "NG": {"long": "graupel number", "units": "1/L", "3D": True},
      
-     #"QI": {"long": "crystal mixing ratio", "units": "g/kg", "3D": True},
-     #"NI": {"long": "crystal number", "units": "1/L", "3D": True},
+     "QI": {"long": "crystal mixing ratio", "units": "g/kg", "3D": True},
+     "NI": {"long": "crystal number", "units": "1/L", "3D": True},
      
-     #"QB": {"long": "bullet mixing ratio", "units": "g/kg", "3D": True},
-     #"NB": {"long": "bullet number", "units": "1/L", "3D": True},
+     "QB": {"long": "bullet mixing ratio", "units": "g/kg", "3D": True},
+     "NB": {"long": "bullet number", "units": "1/L", "3D": True},
      
-     #"QP": {"long": "plate mixing ratio", "units": "g/kg", "3D": True},
-     #"NP": {"long": "plate number", "units": "1/L", "3D": True},
+     "QP": {"long": "plate mixing ratio", "units": "g/kg", "3D": True},
+     "NP": {"long": "plate number", "units": "1/L", "3D": True},
 
-     #"QTT": {"long": "total vapor mix rat", "units": "g/kg", "3D": True},
+     "QTT": {"long": "total vapor mix rat", "units": "g/kg", "3D": True},
+     
      "PRECIP": {"long": "surface precipitation", "units": "kg/m^2", "3D": False,
                 "valid_range": [0., 0.01]},
 }
@@ -205,7 +205,10 @@ if __name__ == "__main__":
     #######################################################
     
     if MASTER_FILE:
-        master_output = make_file(case+"_master.nc", heights)
+        if not suffix:
+            master_output = make_file(case+"_master.nc", heights)
+        else:
+            master_output = make_file(case+"_%s.nc" % suffix, heights)
         print "WRITING MASTER OUTPUT"
 
         ## Add the reference profiles/data to the master data
@@ -301,8 +304,12 @@ if DIAG_FILE:
     nt = crm_io.read_diag(data_src+"DIAG", nz, True)
     all_time, all_tdiag = crm_io.save_diag(data_src+"DIAG", nz, nt, True)
 
-    print case+"-diag.nc"
-    diag = nc.Dataset(case+"_diag.nc", "w", format="NETCDF4")
+    if not suffix:
+        print case+"-diag.nc"
+        diag = nc.Dataset(case+"_diag.nc", "w", format="NETCDF4")
+    else:
+        print case + "_" + suffix
+        diag = nc.Dataset(case+"_%s_diag.nc" % suffix, "w", format="NETCDF4")
     diag.createDimension("zc", nz)
     diag.createDimension("time", nt)
     
@@ -314,28 +321,70 @@ if DIAG_FILE:
     zs.long_name = "z-coordinate in Cartesian system"
     zs.positive = "up"
 
-    times[:] = all_time
+    times[:] = range(nt)
     times.units = "seconds since %s" % model_initial_time
     times.calendar = 'gregorian'
     times.long_name = "time"
 
     microp_diag_vars = [
-        "nuci1", "nuci2", "frozenq", "frozenn", "pr", "pnr", "pi", "pni", "pg", "png", "auq", "aun"
-        "aig", "aign", "frg", "frgn", "mir", "mirn", "mgr", "mgrn", "clr", "clrn", "cli", "clin",
-        "clg", "clgn", "cri", "crin", "crg", "crgn", "crrn", "cir", "cirn", "cig", "cign",
-        "ciin", "cd", "cdn", "cdr", "cdrn", "dep1", "dep2", "depn", "depg1", "depg2", "depgn", "dum"
+        ("nuci1", "nucleated ice number concentration", "1/kg", True), # tendency of nucleated ice crystals, accounting for existing number of crystals and number of available IN (either from prognostic aerosol or precribed IN concentrations)
+        ("nuci2", "unused ice number concentration", "", False),
+        ("frozenq", "freezing of cloud droplet mass", "kg/kg", True), # tendency of QC to freeze into bullets
+        ("frozenn", "freezing of cloud droplet number", "1/kg", True), # tendency of QC to freeze into bullets
+        ("pr", "rain mass flux", "kg/m^2/s", True), 
+        ("pnr", "rain number flux", "1/m^2/s", True),
+        ("pi", "snow/ice/plate/bullet mass flux", "kg/m^2/s", True),
+        ("pni", "snow/ice/plate/bullet number flux", "kg/m^2/s", True),
+        ("pg", "graupel mass flux", "kg/m^2/s", True),
+        ("png", "graupel number flux", "kg/m^2/s", True),
+        ("auq", "autoconversion of cloud to rain mass rate", "kg/kg/s", True),
+        ("aun", "autoconversion of cloud to rain number rate", "1/kg/s", True),
+        ("aig", "autoconversion of ice/bullet/plate/snow to graupel mass rate", "kg/kg/s", True),
+        ("aign", "autoconversion ice/bullet/plate/snow to graupel number rate", "1/kg/s", True),
+        ("frg", "rainwater freezing mass rate", "kg/kg/s", True),
+        ("frgn", "rainwater freezing number rate", "1/kg/s", True), 
+        ("mir", "melting of ice/bullet/plate/snow to rain mass rate", "kg/kg/s", True), 
+        ("mirn", "melting of ice/bullet/plate/snow to rain number rate", "1/kg/s", True), 
+        ("mgr", "melting of graupel to rain mass rate", "kg/kg/s", True),
+        ("mgrn", "melting of graupel to rain number rate", "1/kg/s", True),
+        ("clr", "collection of cloud by rain mass rate", "kg/kg/s", True),
+        ("clrn", "collection of cloud by rain number rate", "1/kg/s", True),
+        ("cli", "collection of cloud by ice/bullet/plate/snow mass rate", "kg/kg/s", True),
+        ("clin",  "collection of cloud by ice/bullet/plate/snow mass rate", "1/kg/s", True),
+        ("clg", "collection of cloud by graupel mass rate", "kg/kg/s", True),
+        ("clgn", "collection of cloud by graupel number rate", "1/kg/s", True),
+        ("cri", "collection of rain by ice/bullet/plate/snow mass rate", "kg/kg/s", True),
+        ("crin", "collection of rain by ice/bullet/plate/snow number rate", "1/kg/s", True),
+        ("crg", "collection of rain by graupel mass rate", "kg/kg/s", True),
+        ("crgn", "collection of rain by graupel number rate", "1/kg/s", True),
+        ("crrn", "rain self-collection/breakup number", "1/kg", True),
+        ("cir", "collection of ice by rain mass rate", "kg/kg/s", True), # Currently hard-disabled in model
+        ("cirn", "collection of ice by rain number rate", "1/kg/s", True),
+        ("cig", "collection of ice/bullet/plate/snow by graupel mass rate", "kg/kg/s", True),
+        ("cign", "collection of ice/bullet/plate/snow by graupel number rate", "1/kg/s", True),
+        ("ciin", "autoconversion of ice/bullet/plate to snow number rate", "1/kg/s", True),
+        ("cd", "tendency in cloudwater mass due to condensation", "kg/kg/s", True),
+        ("cdn", "tendency in cloudwater number due to condensation", "1/kg/s", True),
+        ("cdr", "tendency in rainwater mass due to condensation", "kg/kg/s", True),
+        ("cdrn", "tendency in rainwater number due to condensation", "1/kg/s", True),
+        ("dep1", "graupel evaporation due to riming number rate", "1/kg/s", True),
+        ("dep2", "tendency in ice/plate/bullet/snow mass due to condensation", "kg/kg/s", True),
+        ("depn", "tendency in ice/plate/bullet/snow number due to condensation", "1/kg/s", True),
+        ("depg1", "graupel evaporation due to riming mass rate", "kg/kg/s", True),
+        ("depg2", "tendency in graupel mass due to condensation", "kg/kg/s", True),
+        ("depgn", "tendency in graupel number due to condensation", "1/kg/s", True),
     ]
-    # missing 1!
-    assert len(microp_diag_vars) == 46
 
-    for i, var in enumerate(microp_diag_vars):
-        print var
-        dtw = diag.createVariable(var, "f4", ("time", "zc",))
-        dtw[:] = all_tdiag[:,:,i]
+    for i, (var, longname, units, use) in enumerate(microp_diag_vars):
+        print i, var, longname, units
+        if use:
+            dtw = diag.createVariable(var, "f4", ("time", "zc",))
+            dtw[:] = all_tdiag[:,:,i]
+            dtw.units = units
+            dtw.long_name = longname
 
     diag.title = "CRM71 - %s - Microphys Diag" % case # replace with case name
     diag.history = "Created " + time.ctime(time.time())
     diag.close()
-
 
 

@@ -1,5 +1,13 @@
-! File: crm_io.F90
-! bash$ f2py -c -m crm_io crm_io.F90
+! crm_io.F90 --
+!
+! Collection of subroutines useful for reading and writing output and input files
+! for the cloud resolving model (Wang and Chang, 1993). Although not explicited wrapped
+! here as a module, these subroutines are intended to be compiled with the Numpy 'f2py' 
+! utility and accessed through Python. 
+!
+! To compile, execute the following command:
+!   bash$ f2py -c -m crm_io crm_io.F90
+
 subroutine read_2aq(filename, nt, nx, ny, nz, aq_c, aq_r)
 
     implicit none
@@ -46,7 +54,7 @@ subroutine read_diag(filename, nz, spmd, counter)
 
 !-- Local Variables
     integer :: status, nn, ntime, nhour, nmin, nsec
-    real, dimension(nz, 46) :: tdiag
+    real(4), dimension(nz, 46) :: tdiag
 
 !-- F2PY VARIABLE BINDINGS
     ! f2py intent(in) :: filename, nz, spmd
@@ -76,7 +84,7 @@ subroutine read_diag(filename, nz, spmd, counter)
         print *, "Not implemented yet"
     endif
 
-    rewind (90)
+    !rewind (90)
     print *, "End of reading program"
     close (90)
 
@@ -94,14 +102,15 @@ subroutine save_diag(filename, nz, nt, spmd, all_time, all_tdiag)
 
 !-- Output Variables
     integer, dimension(nt), intent(out) :: all_time
-    real, dimension(nt,nz,46), intent(out) :: all_tdiag
+    real(8), dimension(nt,nz,46), intent(out) :: all_tdiag
 
 !-- Local Variables
     integer :: status, nn, ntime, nhour, nmin, nsec, t
-    real, dimension(nz, 46) :: tdiag
+    real(8), dimension(nz, 46) :: tdiag
 
 !-- F2PY VARIABLE BINDINGS
     ! f2py intent(in) :: filename, nz, nt, spmd
+    ! f2py intent(hide) :: tdiag, status, nn, ntime, nhour, nmin, nsec, t
     ! f2py intent(out) :: all_tdiag, all_time
 
 !-- Main routine
@@ -117,7 +126,7 @@ subroutine save_diag(filename, nz, nt, spmd, all_time, all_tdiag)
                 print *, "Finished reading " // filename
                 exit
             else ! successfully read from file
-                print *, t, ntime, tdiag(16,1)
+                print *, t, nhour, nmin, nsec, tdiag(10,36)
                 all_time(t) = ntime
                 all_tdiag(t,:,:) = tdiag(:,:)
             end if
@@ -126,6 +135,7 @@ subroutine save_diag(filename, nz, nt, spmd, all_time, all_tdiag)
         print *, "Not implemented yet"
     endif
 
+    print *, "End of reading program"
     close (90)
 
 end subroutine save_diag
@@ -141,10 +151,10 @@ subroutine read(filename, nt, nx, ny, nz, data)
     
 !-- Output Variables
     ! Pythonic array indices, from 0 to len(array) - 1
-    real(4), dimension(0:nt-1, 0:nx-1, 0:ny-1, 0:nz-1), intent(out) :: data
+    real(8), dimension(0:nt-1, 0:nx-1, 0:ny-1, 0:nz-1), intent(out) :: data
 
 !-- Local Variables
-    real(4), dimension(nx*ny*nz) :: data_record
+    real(8), dimension(nx*ny*nz) :: data_record
     integer, dimension(3) :: shape
     integer :: t, status
     
