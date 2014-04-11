@@ -25,7 +25,7 @@ export R8=TRUE
 # Produce parallelized model exectuable (SPMD)?
 export SPMD=TRUE
 # Number of processors to use (ignored if !$SPMD)
-export NPROCS=40NZ
+export NPROCS=20
 
 # ----------------------------------------------------------------------------
 # --- Model component/output settings
@@ -41,7 +41,7 @@ export RADIA=TRUE
 # 	Requires `i_creact` be set in namelist,
 #			 chemistry tables (file_rktbl in namelist),
 #			 initial chemical profiles (file_cheminit in namelist)
-export CHEM=FALSE
+export CHEM=TRUE
 # Use modal aerosol model?
 # 	Requies CHEM to be set to TRUE
 export AEROSOL=FALSE
@@ -59,7 +59,7 @@ export M3D=FALSE
 
 # Grid dimensions. Note that NY will be ignored later on unless M3D is
 # set to TRUE
-export NX=400
+export NX=40
 export NY=1
 export NZ=65
 
@@ -426,13 +426,13 @@ cat >> $INCDIR/ctrparam.h << EOF
 ! ===
 ! === if use gravity-wave reflection filter 
 ! ===
-!#undef UGRAV
-#define UGRAV 30.0
+#undef UGRAV
+!#define UGRAV 30.0
 
 ! ===
 ! === if use x-dir periodic lbc: not recommended for 3d
 ! ===
-!#define XPLBC_ENABLE 1
+#define XPLBC_ENABLE 1
 
 ! ===
 ! === if use y-dir periodic lbc: not recommended for 3d
