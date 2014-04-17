@@ -8,8 +8,10 @@ if [ -s $1 ]
 then
     echo "Processing $1..."
 
-    $pth/ncdfvdfcreate -timedims time -vars QC:QR:QG $1 mydata.vdf
-    $pth/ncdf2vdf -timedims time -vars QC:QR:QG $1 mydata.vdf
+    #$pth/ncdfvdfcreate -timedims time -vars QC:QR:QG $1 mydata.vdf
+    #$pth/ncdf2vdf -timedims time -vars QC:QR:QG $1 mydata.vdf
+    $pth/ncdfvdfcreate -timedims time -vars QC:QR:QTT $1 mydata.vdf
+    $pth/ncdf2vdf -timedims time -vars QC:QR:QTT $1 mydata.vdf
 
     #$pth/vaporgui $1
 else
