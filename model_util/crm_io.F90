@@ -126,7 +126,7 @@ subroutine save_diag(filename, nz, nt, spmd, all_time, all_tdiag)
                 print *, "Finished reading " // filename
                 exit
             else ! successfully read from file
-                print *, t, nhour, nmin, nsec, tdiag(10,36)
+                print *, t, nhour, nmin, nsec, ntime, tdiag(10,36)
                 all_time(t) = ntime
                 all_tdiag(t,:,:) = tdiag(:,:)
             end if
@@ -151,10 +151,10 @@ subroutine read(filename, nt, nx, ny, nz, data)
     
 !-- Output Variables
     ! Pythonic array indices, from 0 to len(array) - 1
-    real(8), dimension(0:nt-1, 0:nx-1, 0:ny-1, 0:nz-1), intent(out) :: data
+    real(4), dimension(0:nt-1, 0:nx-1, 0:ny-1, 0:nz-1), intent(out) :: data
 
 !-- Local Variables
-    real(8), dimension(nx*ny*nz) :: data_record
+    real(4), dimension(nx*ny*nz) :: data_record
     integer, dimension(3) :: shape
     integer :: t, status
     
