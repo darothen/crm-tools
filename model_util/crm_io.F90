@@ -167,7 +167,7 @@ subroutine read(filename, nt, nx, ny, nz, data)
     open (unit=1, file=filename, form="unformatted", access="sequential")
     
     read_loop : do t = 1, nt
-        print *, t
+        !print *, t
         read (1,iostat=status) data_record
         if (status > 0) then
             print *, "Error reading " // filename
@@ -176,6 +176,7 @@ subroutine read(filename, nt, nx, ny, nz, data)
             print *, "Finished reading " // filename
             exit
         else ! the read was successful, so do some work
+            write (*,'(i3,"  MAX: ",e10.3," | MIN: ",e10.3)') t, maxval(data_record), minval(data_record)
             data(t,:,:,:) = reshape(data_record, shape)
         end if
     end do read_loop
@@ -183,7 +184,7 @@ subroutine read(filename, nt, nx, ny, nz, data)
     close (unit=1)
     print *, "done"
 
-end subroutine
+end subroutine read
 
 subroutine read_basic_state(filename, nz, p0, pt0, T0, qv0)
 
