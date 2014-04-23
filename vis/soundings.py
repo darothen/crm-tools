@@ -35,6 +35,39 @@ g = 9.81
 gamma_d = 9.8 # dry adiabatic lapse rate, C/km
 
 #####################################
+## Filtering and other functions
+##
+
+def filter_121(data, niter=1, retain_endpoints=True):
+    """ Iteratively apply a 1-2-1 filter to a given sequence of data.
+
+    Parameters
+    ----------
+    data : an array of the data to smooth
+    niter (optional) : the number of times to apply the filter
+    retain_endpoints (optional) : boolean indicating whether to keep end datapoints fixed
+
+    Returns
+    -------
+    an array of the same shape as data which has been filtered
+
+    """
+    data_old = data.copy()
+    
+    data_iter = data.copy()
+    for i in xrange(niter):
+        data_iter[1:-1] = 0.25*(2.*data[1:-1] + data[:-2] + data[2:])
+        if retain_endpoints:
+            data_iter[0] = data[0]
+            data_iter[-1] = data[-1]
+        else:
+            data_iter[0] = (2.*data[0] + data[1])/3. 
+            data_iter[-1] = (2.*data[-1] + data[-2])/3.
+        data[:] = data_iter[:]
+        
+    return data_iter
+
+#####################################
 ## Auxiliary thermodynamic functions
 ##
 
