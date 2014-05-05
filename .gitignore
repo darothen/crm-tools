@@ -6,4 +6,5 @@ mydata*
 *.pyc
 *.eps
 *.pdf
+*.png
 *-checkpoint.ipynb

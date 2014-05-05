@@ -150,8 +150,7 @@ subroutine read(filename, nt, nx, ny, nz, data)
     character(*), intent(in) :: filename
     
 !-- Output Variables
-    ! Pythonic array indices, from 0 to len(array) - 1
-    real(4), dimension(0:nt-1, 0:nx-1, 0:ny-1, 0:nz-1), intent(out) :: data
+    real(4), dimension(nt,nx,ny,nz), intent(out) :: data
 
 !-- Local Variables
     real(4), dimension(nx*ny*nz) :: data_record
